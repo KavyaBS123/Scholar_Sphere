@@ -9,11 +9,7 @@ st.set_page_config(
 )
 
 def main():
-    st.title("👤 Complete Your Profile")
-    st.markdown("""
-    Complete your profile to get the most accurate scholarship recommendations. 
-    All information is stored locally and used only to improve your experience.
-    """)
+    st.title("Profile Setup")
     
     # Initialize user profile if not exists
     if 'user_profile' not in st.session_state:

@@ -10,11 +10,10 @@ st.set_page_config(
 )
 
 def main():
-    st.title("🔍 Search & Filter Scholarships")
+    st.title("Search Scholarships")
     
-    # Check if data manager is initialized
     if 'data_manager' not in st.session_state:
-        st.error("Please visit the main page first to initialize the application.")
+        st.error("Please visit the main page first.")
         return
     
     dm = st.session_state.data_manager
@@ -24,17 +23,17 @@ def main():
     ai_enhancer = AIEnhancer()
     
     # Sidebar filters
-    st.sidebar.header("🎯 Filter Options")
+    st.sidebar.header("Filters")
     
     # Text search
     search_term = st.sidebar.text_input(
-        "🔍 Search scholarships:",
+        "Search:",
         placeholder="Enter keywords..."
     )
     
     # Amount range
     min_amount, max_amount = st.sidebar.slider(
-        "💰 Award Amount Range",
+        "Award Amount",
         min_value=int(scholarships_df['amount'].min()),
         max_value=int(scholarships_df['amount'].max()),
         value=(int(scholarships_df['amount'].min()), int(scholarships_df['amount'].max())),
@@ -45,7 +44,7 @@ def main():
     # Category filter
     categories = sorted(scholarships_df['category'].unique())
     selected_categories = st.sidebar.multiselect(
-        "📚 Categories",
+        "Categories",
         categories,
         default=categories
     )
@@ -56,14 +55,14 @@ def main():
         all_demographics.update(demo_list)
     
     selected_demographics = st.sidebar.multiselect(
-        "👥 Target Demographics",
+        "Demographics",
         sorted(list(all_demographics))
     )
     
     # Academic level filter
     academic_levels = ["High School", "Undergraduate", "Graduate", "Doctoral"]
     selected_academic_levels = st.sidebar.multiselect(
-        "🎓 Academic Level",
+        "Academic Level",
         academic_levels,
         default=academic_levels
     )

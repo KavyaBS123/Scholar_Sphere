@@ -12,15 +12,10 @@ st.set_page_config(
 )
 
 def main():
-    st.title("🗂️ Scholarship Clustering & Visualization")
-    st.markdown("""
-    Explore scholarships through interactive clustering visualizations. This feature uses machine learning 
-    to group similar scholarships together, helping you discover opportunities you might have missed.
-    """)
+    st.title("Scholarship Clusters")
     
-    # Check if data manager is initialized
     if 'data_manager' not in st.session_state:
-        st.error("Please visit the main page first to initialize the application.")
+        st.error("Please visit the main page first.")
         return
     
     dm = st.session_state.data_manager

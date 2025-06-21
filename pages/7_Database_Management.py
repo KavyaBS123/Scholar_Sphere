@@ -12,11 +12,10 @@ st.set_page_config(
 )
 
 def main():
-    st.title("🗄️ Database Management")
-    st.markdown("Manage the PostgreSQL database backend for ScholarSphere")
+    st.title("Database Management")
     
     # Database status
-    st.header("📊 Database Status")
+    st.header("Database Status")
     
     try:
         dm = DatabaseManager()

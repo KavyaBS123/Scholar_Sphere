@@ -12,15 +12,14 @@ st.set_page_config(
 )
 
 def main():
-    st.title("🔗 Scholarship Data Sources")
-    st.markdown("Explore the authentic scholarship opportunities integrated from verified sources across government, foundations, corporations, and educational institutions.")
+    st.title("Data Sources")
     
     # Initialize data integrator
     integrator = RealScholarshipIntegrator()
     
     # Get data manager
     if 'data_manager' not in st.session_state:
-        st.error("Please visit the main page first to initialize the application.")
+        st.error("Please visit the main page first.")
         return
     
     dm = st.session_state.data_manager

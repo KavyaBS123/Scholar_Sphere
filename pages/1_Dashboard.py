@@ -12,20 +12,17 @@ st.set_page_config(
 )
 
 def main():
-    st.title("📊 Your Personalized Dashboard")
+    st.title("Dashboard")
     
-    # Check if data manager is initialized
     if 'data_manager' not in st.session_state:
-        st.error("Please visit the main page first to initialize the application.")
+        st.error("Please visit the main page first.")
         return
     
     dm = st.session_state.data_manager
     user_profile = st.session_state.user_profile
     
-    # Check if user has set up profile
     if not user_profile['demographics'] and not user_profile['field_of_study']:
-        st.warning("⚠️ Complete your profile to get personalized recommendations!")
-        st.markdown("Use the sidebar on the main page or visit the Profile Setup page.")
+        st.warning("Complete your profile to see recommendations")
         return
     
     scholarships_df = dm.get_scholarships_df()
@@ -34,16 +31,16 @@ def main():
     ai_enhancer = AIEnhancer()
     
     # Get personalized recommendations
-    st.header("🎯 Recommended for You")
+    st.header("Recommended for You")
     
     # Filter scholarships based on user profile
     filtered_scholarships = filter_scholarships_for_user(scholarships_df, user_profile)
     
     if filtered_scholarships.empty:
-        st.info("No scholarships match your current profile. Try expanding your criteria in Profile Setup.")
+        st.info("No matches found. Update your profile for better results.")
         return
     
-    # Display top recommendations with AI summaries
+    # Display top recommendations
     top_recommendations = filtered_scholarships.head(3)
     
     for idx, (_, scholarship) in enumerate(top_recommendations.iterrows()):
@@ -53,14 +50,8 @@ def main():
             with col1:
                 st.subheader(f"🏆 {scholarship['title']}")
                 
-                # Get AI summary
-                with st.spinner("Generating AI summary..."):
-                    try:
-                        summary = ai_enhancer.summarize_scholarship(scholarship.to_dict())
-                        st.markdown(f"**AI Summary:** {summary}")
-                    except Exception as e:
-                        st.write(f"**Description:** {scholarship['description']}")
-                        st.caption(f"AI summary unavailable: {str(e)}")
+                # Description
+                st.write(f"**Description:** {scholarship['description'][:200]}...")
                 
                 st.write(f"**Category:** {scholarship['category']}")
                 st.write(f"**Target Demographics:** {', '.join(scholarship['target_demographics'])}")

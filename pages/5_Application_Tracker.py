@@ -12,15 +12,14 @@ st.set_page_config(
 )
 
 def main():
-    st.title("📋 Application Tracker")
-    st.markdown("Track your scholarship applications, monitor deadlines, and manage your progress.")
+    st.title("Application Tracker")
     
     # Initialize application tracker
     if 'app_tracker' not in st.session_state:
         st.session_state.app_tracker = ApplicationTracker()
     
     if 'data_manager' not in st.session_state:
-        st.error("Please visit the main page first to initialize the application.")
+        st.error("Please visit the main page first.")
         return
     
     tracker = st.session_state.app_tracker

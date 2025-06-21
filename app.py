@@ -37,22 +37,11 @@ def main():
 
     # Main header
     st.title("🎓 ScholarSphere")
-    st.markdown("### AI-Enhanced Scholarship Discovery for Underrepresented Students")
+    st.markdown("### Scholarship Discovery Platform")
     
-    # Welcome message
-    st.markdown("""
-    Welcome to ScholarSphere! Our platform uses AI to help underrepresented students discover 
-    relevant scholarships through advanced filtering, clustering visualizations, and personalized recommendations.
-    
-    **Get started by:**
-    1. Setting up your profile in the sidebar
-    2. Exploring scholarships through our dashboard
-    3. Using advanced search and clustering features
-    """)
-    
-    # Sidebar for quick profile setup
+    # Sidebar for profile setup
     with st.sidebar:
-        st.header("Quick Profile Setup")
+        st.header("Profile")
         
         # Demographics
         demographics_options = [
@@ -61,7 +50,7 @@ def main():
             "Student with disability", "Low-income background"
         ]
         selected_demographics = st.multiselect(
-            "Select demographics that apply to you:",
+            "Demographics:",
             demographics_options,
             default=st.session_state.user_profile['demographics']
         )
@@ -73,7 +62,7 @@ def main():
             "Mathematics", "Nursing", "Other"
         ]
         field_of_study = st.selectbox(
-            "Field of Study:",
+            "Field:",
             field_options,
             index=field_options.index(st.session_state.user_profile['field_of_study']) 
             if st.session_state.user_profile['field_of_study'] in field_options else 0
@@ -81,20 +70,19 @@ def main():
         
         # Academic level
         academic_level = st.selectbox(
-            "Academic Level:",
+            "Level:",
             ["High School", "Undergraduate", "Graduate", "Doctoral"],
             index=["High School", "Undergraduate", "Graduate", "Doctoral"].index(st.session_state.user_profile['academic_level'])
             if st.session_state.user_profile['academic_level'] else 0
         )
         
         # Update profile
-        if st.button("Update Profile"):
+        if st.button("Update"):
             st.session_state.user_profile.update({
                 'demographics': selected_demographics,
                 'field_of_study': field_of_study,
                 'academic_level': academic_level
             })
-            st.success("Profile updated!")
             st.rerun()
     
     # Statistics overview
@@ -127,39 +115,26 @@ def main():
         else:
             st.metric("Setup Profile", "👈")
     
-    # Recent scholarships preview
+    # Recent scholarships
     st.header("Featured Scholarships")
     
-    # Display top 5 scholarships
     featured_scholarships = scholarships_df.head(5)
     
     for _, scholarship in featured_scholarships.iterrows():
-        with st.expander(f"🎯 {scholarship['title']} - ${scholarship['amount']:,}"):
+        with st.expander(f"{scholarship['title']} - ${scholarship['amount']:,}"):
             col1, col2 = st.columns([3, 1])
             
             with col1:
                 st.write(f"**Category:** {scholarship['category']}")
-                st.write(f"**Target Demographics:** {', '.join(scholarship['target_demographics'])}")
+                st.write(f"**Demographics:** {', '.join(scholarship['target_demographics'])}")
                 st.write(f"**Deadline:** {scholarship['deadline']}")
-                st.write(f"**Description:** {scholarship['description'][:200]}...")
+                st.write(scholarship['description'][:150] + "...")
             
             with col2:
-                st.write(f"**Amount:** ${scholarship['amount']:,}")
-                st.write(f"**GPA Requirement:** {scholarship['gpa_requirement']}")
-                if st.button(f"View Details", key=f"detail_{scholarship.name}"):
-                    st.info("Navigate to Search Scholarships page for full details")
-    
-    # Call to action
-    st.markdown("---")
-    st.markdown("""
-    ### Ready to find your perfect scholarship?
-    
-    Use the navigation menu to explore:
-    - **Dashboard:** Get personalized recommendations
-    - **Search Scholarships:** Advanced filtering and search
-    - **Scholarship Clusters:** Visual exploration of opportunities
-    - **Profile Setup:** Complete your detailed profile
-    """)
+                st.metric("Amount", f"${scholarship['amount']:,}")
+                st.metric("GPA", f"{scholarship['gpa_requirement']}")
+                if st.button("Details", key=f"detail_{scholarship.name}"):
+                    st.switch_page("pages/2_Search_Scholarships.py")
 
 if __name__ == "__main__":
     main()

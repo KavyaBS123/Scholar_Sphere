@@ -25,47 +25,92 @@ def main():
     clustering = ScholarshipClustering()
     
     # Sidebar for clustering options
-    st.sidebar.header("🎛️ Clustering Options")
+    st.sidebar.header("Clustering Options")
     
-    clustering_method = st.sidebar.selectbox(
-        "Clustering Method:",
-        ["K-Means", "Hierarchical", "DBSCAN"],
-        help="Choose the clustering algorithm to group scholarships"
+    # User profile integration
+    user_profile = st.session_state.get('user_profile', {})
+    
+    view_mode = st.sidebar.selectbox(
+        "View Mode:",
+        ["All Scholarships", "Matching My Profile", "High Award Amount", "Low Competition"]
     )
     
-    if clustering_method == "K-Means":
-        n_clusters = st.sidebar.slider(
-            "Number of Clusters:",
-            min_value=3,
-            max_value=10,
-            value=5,
-            help="How many groups to create"
-        )
-    else:
-        n_clusters = None
+    # Award amount filter
+    amount_filter = st.sidebar.selectbox(
+        "Award Amount Focus:",
+        ["All Amounts", "Under $5,000", "$5,000 - $25,000", "Over $25,000"]
+    )
+    
+    # Competition level
+    competition_level = st.sidebar.selectbox(
+        "Competition Level:",
+        ["All Levels", "Low Competition", "Medium Competition", "High Competition"]
+    )
+    
+    # Number of groups
+    n_clusters = st.sidebar.slider(
+        "Number of Groups:",
+        min_value=3,
+        max_value=8,
+        value=5
+    )
     
     features_to_use = st.sidebar.multiselect(
-        "Features for Clustering:",
-        ["Amount", "Category", "Demographics", "GPA Requirement", "Deadline"],
-        default=["Amount", "Category", "Demographics"],
-        help="Select which scholarship features to use for grouping"
+        "Group By:",
+        ["Amount", "Category", "Demographics", "GPA Requirement"],
+        default=["Amount", "Category", "Demographics"]
     )
     
     if not features_to_use:
-        st.warning("Please select at least one feature for clustering.")
+        st.warning("Please select at least one grouping feature.")
+        return
+    
+    # Filter scholarships based on user preferences
+    filtered_df = scholarships_df.copy()
+    
+    # Apply view mode filter
+    if view_mode == "Matching My Profile" and user_profile.get('demographics'):
+        filtered_df = filtered_df[
+            filtered_df['target_demographics'].apply(
+                lambda x: any(demo in x for demo in user_profile['demographics'])
+            )
+        ]
+    elif view_mode == "High Award Amount":
+        filtered_df = filtered_df[filtered_df['amount'] >= 25000]
+    elif view_mode == "Low Competition":
+        filtered_df = filtered_df[filtered_df['estimated_applicants'] <= 1000]
+    
+    # Apply amount filter
+    if amount_filter == "Under $5,000":
+        filtered_df = filtered_df[filtered_df['amount'] < 5000]
+    elif amount_filter == "$5,000 - $25,000":
+        filtered_df = filtered_df[(filtered_df['amount'] >= 5000) & (filtered_df['amount'] <= 25000)]
+    elif amount_filter == "Over $25,000":
+        filtered_df = filtered_df[filtered_df['amount'] > 25000]
+    
+    # Apply competition filter
+    if competition_level == "Low Competition":
+        filtered_df = filtered_df[filtered_df['estimated_applicants'] <= 1000]
+    elif competition_level == "Medium Competition":
+        filtered_df = filtered_df[(filtered_df['estimated_applicants'] > 1000) & (filtered_df['estimated_applicants'] <= 5000)]
+    elif competition_level == "High Competition":
+        filtered_df = filtered_df[filtered_df['estimated_applicants'] > 5000]
+    
+    if filtered_df.empty:
+        st.warning("No scholarships match your current filters. Try adjusting your criteria.")
         return
     
     # Perform clustering
-    with st.spinner("Performing clustering analysis..."):
+    with st.spinner("Analyzing scholarship groups..."):
         try:
             clustered_df, cluster_info = clustering.cluster_scholarships(
-                scholarships_df, 
-                method=clustering_method.lower().replace('-', ''),
+                filtered_df, 
+                method='kmeans',
                 n_clusters=n_clusters,
                 features=features_to_use
             )
         except Exception as e:
-            st.error(f"Clustering failed: {str(e)}")
+            st.error(f"Analysis failed: {str(e)}")
             return
     
     if clustered_df is None:

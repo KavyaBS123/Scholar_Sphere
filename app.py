@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-from utils.data_manager import DataManager
+from utils.database_manager import DatabaseManager
 from utils.scholarship_data import get_initial_scholarship_data
 
 # Configure page
@@ -11,19 +11,18 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Initialize data manager
+# Initialize database manager
 @st.cache_resource
-def init_data_manager():
-    dm = DataManager()
-    # Load initial scholarship data
-    scholarships = get_initial_scholarship_data()
-    dm.load_scholarships(scholarships)
+def init_database_manager():
+    dm = DatabaseManager()
+    # Load scholarships from database or authentic sources
+    dm.load_scholarships()
     return dm
 
 def main():
     # Initialize session state
     if 'data_manager' not in st.session_state:
-        st.session_state.data_manager = init_data_manager()
+        st.session_state.data_manager = init_database_manager()
     
     if 'user_profile' not in st.session_state:
         st.session_state.user_profile = {

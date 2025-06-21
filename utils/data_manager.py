@@ -1,6 +1,7 @@
 import pandas as pd
 import json
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
+from io import StringIO
 import streamlit as st
 
 class DataManager:
@@ -12,8 +13,18 @@ class DataManager:
     
     def load_scholarships(self, scholarships_data: List[Dict[str, Any]]):
         """Load scholarship data from a list of dictionaries"""
-        self.scholarships = scholarships_data
-        self.scholarships_df = pd.DataFrame(scholarships_data)
+        # Load real scholarship data from authentic sources
+        from utils.data_integration import RealScholarshipIntegrator
+        
+        integrator = RealScholarshipIntegrator()
+        real_scholarships = integrator.aggregate_all_real_scholarships()
+        enriched_scholarships = integrator.enrich_with_additional_data(real_scholarships)
+        
+        # Combine with any provided data
+        all_scholarships = enriched_scholarships + scholarships_data
+        
+        self.scholarships = all_scholarships
+        self.scholarships_df = pd.DataFrame(all_scholarships)
         
         # Ensure proper data types
         self._clean_and_validate_data()
@@ -53,14 +64,14 @@ class DataManager:
         """Get the scholarships dataframe"""
         return self.scholarships_df.copy() if self.scholarships_df is not None else pd.DataFrame()
     
-    def get_scholarship_by_id(self, scholarship_id: int) -> Dict[str, Any]:
+    def get_scholarship_by_id(self, scholarship_id: int) -> Optional[Dict[str, Any]]:
         """Get a specific scholarship by its index"""
         if self.scholarships_df is None or scholarship_id >= len(self.scholarships_df):
             return None
         
         return self.scholarships_df.iloc[scholarship_id].to_dict()
     
-    def search_scholarships(self, query: str, filters: Dict[str, Any] = None) -> pd.DataFrame:
+    def search_scholarships(self, query: str, filters: Optional[Dict[str, Any]] = None) -> pd.DataFrame:
         """Search scholarships based on query and filters"""
         if self.scholarships_df is None or self.scholarships_df.empty:
             return pd.DataFrame()
@@ -89,12 +100,13 @@ class DataManager:
             
             # Category filter
             if 'categories' in filters and filters['categories']:
-                result_df = result_df[result_df['category'].isin(filters['categories'])]
+                category_mask = result_df['category'].isin(filters['categories'])
+                result_df = result_df[category_mask]
             
             # Demographics filter
             if 'demographics' in filters and filters['demographics']:
                 demo_mask = result_df['target_demographics'].apply(
-                    lambda x: any(demo in filters['demographics'] for demo in x)
+                    lambda x: any(demo in filters['demographics'] for demo in x) if isinstance(x, list) else False
                 )
                 result_df = result_df[demo_mask]
             
@@ -177,7 +189,10 @@ class DataManager:
         if format.lower() == 'json':
             return json.dumps(self.scholarships, indent=2, default=str)
         elif format.lower() == 'csv':
-            return self.scholarships_df.to_csv(index=False)
+            if self.scholarships_df is not None:
+                return self.scholarships_df.to_csv(index=False)
+            else:
+                return ""
         else:
             raise ValueError("Unsupported export format. Use 'json' or 'csv'.")
     

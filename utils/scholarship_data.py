@@ -117,7 +117,7 @@ def get_initial_scholarship_data() -> List[Dict[str, Any]]:
     ]
     
     # Generate combinations
-    for i in range(30):  # Generate 30 additional scholarships
+    for i in range(470):  # Generate 470 additional scholarships to reach 500+ total
         template = scholarship_templates[0]
         
         # Select random components

@@ -243,7 +243,7 @@ def main():
     st.header("💡 Clustering Insights & Recommendations")
     
     user_profile = st.session_state.user_profile
-    if user_profile['demographics'] or user_profile['field_of_study']:
+    if user_profile.get('demographics') or user_profile.get('field_of_study'):
         recommended_clusters = recommend_clusters_for_user(clustered_df, user_profile)
         
         if recommended_clusters:
@@ -335,19 +335,19 @@ def recommend_clusters_for_user(clustered_df, user_profile):
         cluster_data = clustered_df[clustered_df['cluster'] == cluster_id]
         
         # Check demographic alignment
-        if user_profile['demographics']:
+        if user_profile.get('demographics'):
             matching_scholarships = 0
             for _, scholarship in cluster_data.iterrows():
-                if any(demo in scholarship['target_demographics'] for demo in user_profile['demographics']):
+                if any(demo in scholarship.get('target_demographics', []) for demo in user_profile.get('demographics', [])):
                     matching_scholarships += 1
             
             if matching_scholarships > len(cluster_data) * 0.3:  # 30% match threshold
                 recommendations.append((cluster_id, f"High demographic alignment ({matching_scholarships}/{len(cluster_data)} scholarships match)"))
         
         # Check field of study alignment
-        if user_profile['field_of_study']:
+        if user_profile.get('field_of_study'):
             field_matches = cluster_data['category'].str.contains(
-                user_profile['field_of_study'], case=False, na=False
+                user_profile.get('field_of_study', ''), case=False, na=False
             ).sum()
             
             if field_matches > len(cluster_data) * 0.5:  # 50% match threshold

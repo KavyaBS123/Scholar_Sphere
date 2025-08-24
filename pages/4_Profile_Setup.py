@@ -58,14 +58,14 @@ def main():
             selected_demographics = st.multiselect(
                 "Select all that apply to you:",
                 demographics_options,
-                default=profile['demographics'],
+                default=profile.get('demographics', []),
                 help="This helps us find scholarships specifically designed for your background"
             )
             
             # Location
             location = st.text_input(
                 "Location (State/Country):",
-                value=profile['location'],
+                value=profile.get('location', ''),
                 placeholder="e.g., California, USA",
                 help="Some scholarships are location-specific"
             )
@@ -74,7 +74,7 @@ def main():
             financial_need = st.selectbox(
                 "Financial Need Level:",
                 ["", "High", "Moderate", "Low"],
-                index=["", "High", "Moderate", "Low"].index(profile['financial_need']) if profile['financial_need'] else 0,
+                index=["", "High", "Moderate", "Low"].index(profile.get('financial_need', '')) if profile.get('financial_need') else 0,
                 help="This helps prioritize need-based scholarships"
             )
         
@@ -85,9 +85,9 @@ def main():
                 "Current Academic Level:",
                 ["", "High School Senior", "Undergraduate Freshman", "Undergraduate Sophomore", 
                  "Undergraduate Junior", "Undergraduate Senior", "Graduate Student", "Doctoral Student"],
-                index=0 if not profile['academic_level'] else ["", "High School Senior", "Undergraduate Freshman", 
+                index=0 if not profile.get('academic_level') else ["", "High School Senior", "Undergraduate Freshman", 
                        "Undergraduate Sophomore", "Undergraduate Junior", "Undergraduate Senior", 
-                       "Graduate Student", "Doctoral Student"].index(profile['academic_level']) if profile['academic_level'] in ["", "High School Senior", "Undergraduate Freshman", "Undergraduate Sophomore", "Undergraduate Junior", "Undergraduate Senior", "Graduate Student", "Doctoral Student"] else 0
+                       "Graduate Student", "Doctoral Student"].index(profile.get('academic_level', '')) if profile.get('academic_level') in ["", "High School Senior", "Undergraduate Freshman", "Undergraduate Sophomore", "Undergraduate Junior", "Undergraduate Senior", "Graduate Student", "Doctoral Student"] else 0
             )
             
             # Expected graduation year
@@ -95,7 +95,7 @@ def main():
             graduation_year = st.selectbox(
                 "Expected Graduation Year:",
                 list(range(current_year, current_year + 10)),
-                index=profile['graduation_year'] - current_year if profile['graduation_year'] >= current_year else 0
+                index=profile.get('graduation_year', current_year) - current_year if profile.get('graduation_year', current_year) >= current_year else 0
             )
             
             # GPA
@@ -103,7 +103,7 @@ def main():
                 "Current GPA:",
                 min_value=0.0,
                 max_value=4.0,
-                value=float(profile['gpa']),
+                value=float(profile.get('gpa', 0.0)),
                 step=0.1,
                 help="Enter your current GPA on a 4.0 scale"
             )
@@ -125,13 +125,13 @@ def main():
             field_of_study = st.selectbox(
                 "Primary Field of Study:",
                 field_options,
-                index=field_options.index(profile['field_of_study']) if profile['field_of_study'] in field_options else 0
+                index=field_options.index(profile.get('field_of_study', '')) if profile.get('field_of_study') in field_options else 0
             )
             
             # Specific interests within field
             interests = st.text_area(
                 "Specific Interests/Specializations:",
-                value=", ".join(profile['interests']) if profile['interests'] else "",
+                value=", ".join(profile.get('interests', [])) if profile.get('interests') else "",
                 placeholder="e.g., Artificial Intelligence, Renewable Energy, Pediatric Medicine",
                 help="List specific areas within your field that interest you"
             )
@@ -149,14 +149,14 @@ def main():
             selected_extracurriculars = st.multiselect(
                 "Extracurricular Activities:",
                 extracurricular_options,
-                default=profile['extracurriculars'],
+                default=profile.get('extracurriculars', []),
                 help="Activities and involvement help match you with relevant scholarships"
             )
             
             # Career goals
             career_goals = st.text_area(
                 "Career Goals:",
-                value=profile['career_goals'],
+                value=profile.get('career_goals', ''),
                 placeholder="Describe your career aspirations and how you plan to make an impact",
                 help="Many scholarships look for students with clear goals and vision"
             )
@@ -179,7 +179,7 @@ def main():
             essay_topics = st.multiselect(
                 "Essay Topics You're Comfortable Writing About:",
                 essay_topic_options,
-                default=profile['essay_topics_interested'],
+                default=profile.get('essay_topics_interested', []),
                 help="This helps find scholarships with essay prompts you can excel at"
             )
         
@@ -217,7 +217,7 @@ def main():
             application_preferences = st.multiselect(
                 "Application Preferences:",
                 application_pref_options,
-                default=profile['application_preferences'],
+                default=profile.get('application_preferences', []),
                 help="Helps prioritize scholarships that match your application style"
             )
             

@@ -23,7 +23,7 @@ def main():
     dm = st.session_state.data_manager
     user_profile = st.session_state.user_profile
     
-    if not user_profile['demographics'] and not user_profile['field_of_study']:
+    if not user_profile.get('demographics') and not user_profile.get('field_of_study'):
         st.warning("Complete your profile to see recommendations")
         return
     

@@ -1,5 +1,23 @@
 # ScholarSphere - Scholarship Discovery Platform
 
+![WhatsApp Image 2025-08-24 at 11 17 58_5dcaced4](https://github.com/user-attachments/assets/bf71019c-0ee2-4ced-ac45-a8bcf71bc1d8)
+
+
+
+![WhatsApp Image 2025-08-24 at 11 18 36_65572304](https://github.com/user-attachments/assets/fe5b0790-8832-4ee6-855b-ead5b74ae1c9)
+
+
+
+![WhatsApp Image 2025-08-24 at 11 19 41_aaa7f8f6](https://github.com/user-attachments/assets/87413922-74c2-4dd2-a35c-8635546ed18b)
+
+
+![WhatsApp Image 2025-08-24 at 11 20 11_8662d36d](https://github.com/user-attachments/assets/dce42279-bfe7-46fe-8e3f-ca0a6e088958)
+
+
+![WhatsApp Image 2025-08-24 at 11 21 06_6bda5910](https://github.com/user-attachments/assets/a7a32b03-1096-4d5e-9931-dcb6d9415de5)
+
+
+
 ## Overview
 
 ScholarSphere is a comprehensive scholarship discovery and application management platform that leverages AI-powered matching and data analytics to help students find and apply for scholarships. The platform features a Streamlit-based web interface with multiple modules including scholarship search, AI-driven recommendations, application tracking, and data visualization through clustering analysis.

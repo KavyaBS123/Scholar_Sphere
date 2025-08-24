@@ -91,50 +91,84 @@ def main():
     
     col1, col2, col3, col4 = st.columns(4)
     
-    with col1:
-        st.metric("Total Scholarships", len(scholarships_df))
-    
-    with col2:
-        avg_amount = scholarships_df['amount'].mean()
-        st.metric("Average Award", f"${avg_amount:,.0f}")
-    
-    with col3:
-        unique_categories = scholarships_df['category'].nunique()
-        st.metric("Categories", unique_categories)
-    
-    with col4:
-        # Count scholarships matching user demographics
-        user_demographics = st.session_state.user_profile['demographics']
-        if user_demographics:
-            matching_scholarships = scholarships_df[
-                scholarships_df['target_demographics'].apply(
-                    lambda x: any(demo in x for demo in user_demographics)
-                )
-            ]
-            st.metric("Matches for You", len(matching_scholarships))
-        else:
+    if scholarships_df.empty:
+        with col1:
+            st.metric("Total Scholarships", "Loading...")
+        with col2:
+            st.metric("Average Award", "Loading...")
+        with col3:
+            st.metric("Categories", "Loading...")
+        with col4:
             st.metric("Setup Profile", "👈")
+    else:
+        with col1:
+            st.metric("Total Scholarships", len(scholarships_df))
+        
+        with col2:
+            if 'amount' in scholarships_df.columns:
+                avg_amount = scholarships_df['amount'].mean()
+                st.metric("Average Award", f"${avg_amount:,.0f}")
+            else:
+                st.metric("Average Award", "N/A")
+        
+        with col3:
+            if 'category' in scholarships_df.columns:
+                unique_categories = scholarships_df['category'].nunique()
+                st.metric("Categories", unique_categories)
+            else:
+                st.metric("Categories", "N/A")
+        
+        with col4:
+            # Count scholarships matching user demographics
+            user_demographics = st.session_state.user_profile['demographics']
+            if user_demographics and 'target_demographics' in scholarships_df.columns:
+                matching_scholarships = scholarships_df[
+                    scholarships_df['target_demographics'].apply(
+                        lambda x: any(demo in x for demo in user_demographics) if isinstance(x, list) else False
+                    )
+                ]
+                st.metric("Matches for You", len(matching_scholarships))
+            else:
+                st.metric("Setup Profile", "👈")
     
     # Recent scholarships
     st.header("Featured Scholarships")
     
-    featured_scholarships = scholarships_df.head(5)
-    
-    for _, scholarship in featured_scholarships.iterrows():
-        with st.expander(f"{scholarship['title']} - ${scholarship['amount']:,}"):
-            col1, col2 = st.columns([3, 1])
+    if scholarships_df.empty:
+        st.info("Loading scholarships... Please refresh the page if this takes too long.")
+        if st.button("Reload Scholarships"):
+            st.session_state.data_manager.load_scholarships(force_reload=True)
+            st.rerun()
+    else:
+        featured_scholarships = scholarships_df.head(5)
+        
+        for _, scholarship in featured_scholarships.iterrows():
+            # Safe column access with defaults
+            title = scholarship.get('title', 'Unknown Title')
+            amount = scholarship.get('amount', 0)
+            category = scholarship.get('category', 'N/A')
+            demographics = scholarship.get('target_demographics', [])
+            deadline = scholarship.get('deadline', 'N/A')
+            description = scholarship.get('description', 'No description available')
+            gpa_req = scholarship.get('gpa_requirement', 0.0)
             
-            with col1:
-                st.write(f"**Category:** {scholarship['category']}")
-                st.write(f"**Demographics:** {', '.join(scholarship['target_demographics'])}")
-                st.write(f"**Deadline:** {scholarship['deadline']}")
-                st.write(scholarship['description'][:150] + "...")
-            
-            with col2:
-                st.metric("Amount", f"${scholarship['amount']:,}")
-                st.metric("GPA", f"{scholarship['gpa_requirement']}")
-                if st.button("Details", key=f"detail_{scholarship.name}"):
-                    st.switch_page("pages/2_Search_Scholarships.py")
+            with st.expander(f"{title} - ${amount:,}"):
+                col1, col2 = st.columns([3, 1])
+                
+                with col1:
+                    st.write(f"**Category:** {category}")
+                    if isinstance(demographics, list):
+                        st.write(f"**Demographics:** {', '.join(demographics)}")
+                    else:
+                        st.write(f"**Demographics:** {demographics}")
+                    st.write(f"**Deadline:** {deadline}")
+                    st.write(description[:150] + "...")
+                
+                with col2:
+                    st.metric("Amount", f"${amount:,}")
+                    st.metric("GPA", f"{gpa_req}")
+                    if st.button("Details", key=f"detail_{scholarship.name}"):
+                        st.switch_page("pages/2_Search_Scholarships.py")
 
 if __name__ == "__main__":
     main()

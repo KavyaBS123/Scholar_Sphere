@@ -32,27 +32,46 @@ def main():
     )
     
     # Amount range
-    min_amount, max_amount = st.sidebar.slider(
-        "Award Amount",
-        min_value=int(scholarships_df['amount'].min()),
-        max_value=int(scholarships_df['amount'].max()),
-        value=(int(scholarships_df['amount'].min()), int(scholarships_df['amount'].max())),
-        step=1000,
-        format="$%d"
-    )
+    if not scholarships_df.empty and 'amount' in scholarships_df.columns:
+        min_amount, max_amount = st.sidebar.slider(
+            "Award Amount",
+            min_value=int(scholarships_df['amount'].min()),
+            max_value=int(scholarships_df['amount'].max()),
+            value=(int(scholarships_df['amount'].min()), int(scholarships_df['amount'].max())),
+            step=1000,
+            format="$%d"
+        )
+    else:
+        min_amount, max_amount = st.sidebar.slider(
+            "Award Amount",
+            min_value=0,
+            max_value=100000,
+            value=(0, 100000),
+            step=1000,
+            format="$%d"
+        )
     
     # Category filter
-    categories = sorted(scholarships_df['category'].unique())
-    selected_categories = st.sidebar.multiselect(
-        "Categories",
-        categories,
-        default=categories
-    )
+    if not scholarships_df.empty and 'category' in scholarships_df.columns:
+        categories = sorted(scholarships_df['category'].unique())
+        selected_categories = st.sidebar.multiselect(
+            "Categories",
+            categories,
+            default=categories
+        )
+    else:
+        categories = []
+        selected_categories = st.sidebar.multiselect(
+            "Categories",
+            categories
+        )
     
     # Demographics filter
     all_demographics = set()
-    for demo_list in scholarships_df['target_demographics']:
-        all_demographics.update(demo_list)
+    if not scholarships_df.empty and 'target_demographics' in scholarships_df.columns:
+        for demo_list in scholarships_df['target_demographics']:
+            if isinstance(demo_list, list):
+                all_demographics.update(demo_list)
     
     selected_demographics = st.sidebar.multiselect(
         "Demographics",

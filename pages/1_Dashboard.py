@@ -3,7 +3,9 @@ import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 from utils.ai_enhancer import AIEnhancer
+from utils.ai_matching_engine import AdvancedAIMatchingEngine
 from utils.clustering import ScholarshipClustering
+import numpy as np
 
 st.set_page_config(
     page_title="Dashboard - ScholarSphere",
@@ -27,49 +29,83 @@ def main():
     
     scholarships_df = dm.get_scholarships_df()
     
-    # Initialize AI enhancer
+    # Initialize AI components
     ai_enhancer = AIEnhancer()
+    ai_matcher = AdvancedAIMatchingEngine()
     
-    # Get personalized recommendations
-    st.header("Recommended for You")
+    # AI-Powered Personalized Dashboard
+    st.header("🤖 AI-Powered Recommendations")
     
-    # Filter scholarships based on user profile
-    filtered_scholarships = filter_scholarships_for_user(scholarships_df, user_profile)
-    
-    if filtered_scholarships.empty:
-        st.info("No matches found. Update your profile for better results.")
-        return
-    
-    # Display top recommendations
-    top_recommendations = filtered_scholarships.head(3)
-    
-    for idx, (_, scholarship) in enumerate(top_recommendations.iterrows()):
-        with st.container():
-            col1, col2 = st.columns([3, 1])
-            
-            with col1:
-                st.subheader(f"🏆 {scholarship['title']}")
+    # Get AI insights first
+    if ai_matcher.is_available() and not scholarships_df.empty:
+        with st.spinner("AI is analyzing scholarships for you..."):
+            try:
+                # Convert scholarships to list of dicts for AI analysis
+                scholarships_list = scholarships_df.to_dict('records')
                 
-                # Description
-                st.write(f"**Description:** {scholarship['description'][:200]}...")
+                # Get comprehensive analysis for top scholarships
+                ai_analyses = ai_matcher.batch_analyze_scholarships(scholarships_list[:20], user_profile)
                 
-                st.write(f"**Category:** {scholarship['category']}")
-                st.write(f"**Target Demographics:** {', '.join(scholarship['target_demographics'])}")
-                st.write(f"**Eligibility:** {scholarship['eligibility_criteria']}")
-                st.write(f"**Deadline:** {scholarship['deadline']}")
-            
-            with col2:
-                st.metric("Award Amount", f"${scholarship['amount']:,}")
-                st.metric("GPA Required", f"{scholarship['gpa_requirement']}")
+                # Generate dashboard insights
+                dashboard_insights = ai_matcher.generate_ai_insights_dashboard(user_profile, ai_analyses)
                 
-                # Match score calculation
-                match_score = calculate_match_score(scholarship, user_profile)
-                st.metric("Match Score", f"{match_score}%")
+                # Display AI insights
+                col1, col2, col3 = st.columns(3)
                 
-                if st.button(f"Apply Now", key=f"apply_{idx}"):
-                    st.success(f"Redirecting to application for {scholarship['title']}")
-            
-            st.markdown("---")
+                with col1:
+                    profile_strength = dashboard_insights.get('profile_strength_score', 0)
+                    st.metric("Profile Strength", f"{profile_strength}%")
+                    
+                with col2:
+                    if ai_analyses:
+                        avg_eligibility = np.mean([a.get('overall_score', 0) for a in ai_analyses[:5]])
+                        st.metric("Avg Eligibility Score", f"{avg_eligibility:.0f}%")
+                    else:
+                        st.metric("Avg Eligibility Score", "N/A")
+                
+                with col3:
+                    if ai_analyses:
+                        high_match_count = len([a for a in ai_analyses if a.get('overall_score', 0) >= 70])
+                        st.metric("High-Match Scholarships", high_match_count)
+                    else:
+                        st.metric("High-Match Scholarships", 0)
+                
+                # Display key insights
+                if dashboard_insights.get('key_insights'):
+                    st.subheader("🎯 Key Insights")
+                    for insight in dashboard_insights.get('key_insights', [])[:3]:
+                        st.info(insight)
+                
+                # Display top AI-analyzed recommendations
+                if ai_analyses:
+                    st.subheader("Top AI-Matched Scholarships")
+                    
+                    for i, analysis in enumerate(ai_analyses[:3]):
+                        scholarship_id = analysis.get('scholarship_id')
+                        if scholarship_id:
+                            # Find the scholarship in the dataframe
+                            scholarship_row = scholarships_df[scholarships_df['id'] == scholarship_id]
+                            if not scholarship_row.empty:
+                                scholarship = scholarship_row.iloc[0]
+                                display_ai_recommendation(scholarship, analysis, i)
+                
+            except Exception as e:
+                st.error(f"AI analysis failed: {str(e)}")
+                # Fallback to basic filtering
+                filtered_scholarships = filter_scholarships_for_user(scholarships_df, user_profile)
+                if not filtered_scholarships.empty:
+                    top_recommendations = filtered_scholarships.head(3)
+                    display_basic_recommendations(top_recommendations, user_profile)
+    else:
+        # Fallback to basic recommendations
+        filtered_scholarships = filter_scholarships_for_user(scholarships_df, user_profile)
+        
+        if filtered_scholarships.empty:
+            st.info("No matches found. Update your profile for better results.")
+            return
+        
+        top_recommendations = filtered_scholarships.head(3)
+        display_basic_recommendations(top_recommendations, user_profile)
     
     # Analytics section
     col1, col2 = st.columns(2)
@@ -166,29 +202,110 @@ def main():
     st.write("• Set up deadline reminders for scholarships you're interested in")
     st.write("• Consider scholarships with lower match scores - they might have less competition")
 
+def display_ai_recommendation(scholarship, analysis, index):
+    """Display AI-enhanced scholarship recommendation"""
+    with st.container():
+        col1, col2 = st.columns([3, 1])
+        
+        with col1:
+            # Title with AI score indicator
+            score = analysis.get('overall_score', 0)
+            score_emoji = "🏆" if score >= 80 else "🏅" if score >= 60 else "📋"
+            st.subheader(f"{score_emoji} {scholarship['title']}")
+            
+            # AI-generated summary if available
+            if analysis.get('strengths'):
+                st.write("**Why this is a great match:**")
+                for strength in analysis.get('strengths', [])[:2]:
+                    st.write(f"✅ {strength}")
+            
+            # Basic info
+            st.write(f"**Category:** {scholarship['category']}")
+            st.write(f"**Deadline:** {scholarship['deadline']}")
+            
+            # AI recommendations
+            if analysis.get('recommendations'):
+                with st.expander("AI Recommendations"):
+                    for rec in analysis.get('recommendations', [])[:3]:
+                        st.write(f"💡 {rec}")
+        
+        with col2:
+            st.metric("Award Amount", f"${scholarship['amount']:,}")
+            st.metric("AI Match Score", f"{score}%")
+            
+            success_prob = analysis.get('success_probability', 0)
+            st.metric("Success Probability", f"{success_prob}%")
+            
+            difficulty = analysis.get('application_difficulty', 3)
+            difficulty_map = {1: "Very Easy", 2: "Easy", 3: "Medium", 4: "Hard", 5: "Very Hard"}
+            st.metric("Difficulty", difficulty_map.get(difficulty, "Medium"))
+            
+            # Action buttons
+            col_btn1, col_btn2 = st.columns(2)
+            with col_btn1:
+                if st.button("Analyze", key=f"analyze_{index}"):
+                    st.switch_page("pages/8_AI_Application_Assistant.py")
+            with col_btn2:
+                if st.button("Apply", key=f"apply_{index}"):
+                    # Add to application tracker
+                    dm = st.session_state.data_manager
+                    dm.add_application(scholarship['id'], scholarship['title'])
+                    st.success("Added to your application tracker!")
+        
+        st.markdown("---")
+
+def display_basic_recommendations(top_recommendations, user_profile):
+    """Display basic recommendations without AI analysis"""
+    for idx, (_, scholarship) in enumerate(top_recommendations.iterrows()):
+        with st.container():
+            col1, col2 = st.columns([3, 1])
+            
+            with col1:
+                st.subheader(f"🏆 {scholarship['title']}")
+                st.write(f"**Description:** {scholarship['description'][:200]}...")
+                st.write(f"**Category:** {scholarship['category']}")
+                st.write(f"**Target Demographics:** {', '.join(scholarship['target_demographics'])}")
+                st.write(f"**Deadline:** {scholarship['deadline']}")
+            
+            with col2:
+                st.metric("Award Amount", f"${scholarship['amount']:,}")
+                st.metric("GPA Required", f"{scholarship['gpa_requirement']}")
+                match_score = calculate_match_score(scholarship, user_profile)
+                st.metric("Match Score", f"{match_score}%")
+                
+                if st.button(f"Apply Now", key=f"apply_{idx}"):
+                    dm = st.session_state.data_manager
+                    dm.add_application(scholarship['id'], scholarship['title'])
+                    st.success(f"Added {scholarship['title']} to your application tracker!")
+            
+            st.markdown("---")
+
 def filter_scholarships_for_user(scholarships_df, user_profile):
     """Filter scholarships based on user profile"""
+    if scholarships_df.empty:
+        return scholarships_df
+        
     filtered_df = scholarships_df.copy()
     
     # Filter by demographics
-    if user_profile['demographics']:
+    if user_profile.get('demographics'):
         demographic_mask = scholarships_df['target_demographics'].apply(
-            lambda x: any(demo in user_profile['demographics'] for demo in x)
+            lambda x: any(demo in user_profile['demographics'] for demo in x) if isinstance(x, list) else False
         )
         filtered_df = filtered_df[demographic_mask]
     
     # Filter by field of study
-    if user_profile['field_of_study']:
+    if user_profile.get('field_of_study'):
         field_mask = scholarships_df['category'].str.contains(
             user_profile['field_of_study'], case=False, na=False
         )
         filtered_df = filtered_df[field_mask | 
                                  scholarships_df['target_demographics'].apply(
-                                     lambda x: user_profile['field_of_study'].lower() in ' '.join(x).lower()
+                                     lambda x: user_profile['field_of_study'].lower() in ' '.join(x).lower() if isinstance(x, list) else False
                                  )]
     
     # Filter by academic level
-    if user_profile['academic_level']:
+    if user_profile.get('academic_level') and 'eligibility_criteria' in scholarships_df.columns:
         level_mask = scholarships_df['eligibility_criteria'].str.contains(
             user_profile['academic_level'], case=False, na=False
         )

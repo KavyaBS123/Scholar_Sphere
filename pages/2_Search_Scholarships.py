@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 from utils.ai_enhancer import AIEnhancer
+from utils.ai_matching_engine import AdvancedAIMatchingEngine
 
 st.set_page_config(
     page_title="Search Scholarships - ScholarSphere",
@@ -19,17 +20,41 @@ def main():
     dm = st.session_state.data_manager
     scholarships_df = dm.get_scholarships_df()
     
-    # Initialize AI enhancer
+    # Initialize AI components
     ai_enhancer = AIEnhancer()
+    ai_matcher = AdvancedAIMatchingEngine()
     
     # Sidebar filters
     st.sidebar.header("Filters")
     
-    # Text search
+    # AI-Enhanced Search
+    st.sidebar.header("🤖 AI-Enhanced Search")
+    
+    # Get AI search suggestions
+    user_profile = st.session_state.get('user_profile', {})
+    if st.sidebar.button("Get AI Search Suggestions") and ai_enhancer.is_available():
+        with st.sidebar:
+            with st.spinner("Generating suggestions..."):
+                try:
+                    suggestions = ai_enhancer.generate_search_suggestions(user_profile)
+                    st.write("**Suggested Search Terms:**")
+                    for suggestion in suggestions:
+                        if st.button(suggestion, key=f"suggest_{suggestion}"):
+                            st.session_state['search_term'] = suggestion
+                            st.rerun()
+                except Exception as e:
+                    st.error(f"Error generating suggestions: {str(e)}")
+    
+    # Text search with AI suggestions
     search_term = st.sidebar.text_input(
         "Search:",
-        placeholder="Enter keywords..."
+        value=st.session_state.get('search_term', ''),
+        placeholder="Enter keywords or use AI suggestions above..."
     )
+    
+    # Save search term to session state
+    if search_term:
+        st.session_state['search_term'] = search_term
     
     # Amount range
     if not scholarships_df.empty and 'amount' in scholarships_df.columns:
@@ -135,18 +160,63 @@ def main():
         st.warning("No scholarships match your current filters. Try adjusting your criteria.")
         return
     
-    # Sorting options
-    col1, col2 = st.columns([3, 1])
+    # AI-Enhanced Sorting and Analysis
+    col1, col2, col3 = st.columns([2, 1, 1])
     with col1:
         st.subheader(f"Found {len(filtered_df)} scholarships")
     with col2:
         sort_by = st.selectbox(
             "Sort by:",
-            ["Amount (High to Low)", "Amount (Low to High)", "Deadline", "Alphabetical"]
+            ["AI Match Score", "Amount (High to Low)", "Amount (Low to High)", "Deadline", "Alphabetical"]
+        )
+    with col3:
+        analyze_with_ai = st.checkbox(
+            "AI Analysis",
+            value=ai_matcher.is_available(),
+            help="Get AI-powered match scores and recommendations"
         )
     
+    # AI Analysis and Sorting
+    if analyze_with_ai and ai_matcher.is_available() and not filtered_df.empty:
+        with st.spinner("AI is analyzing scholarships for optimal matches..."):
+            try:
+                # Convert to list for AI analysis
+                scholarships_list = filtered_df.to_dict('records')
+                user_profile = st.session_state.get('user_profile', {})
+                
+                # Get AI analysis for filtered scholarships
+                ai_analyses = ai_matcher.batch_analyze_scholarships(scholarships_list, user_profile)
+                
+                # Add AI scores to dataframe
+                ai_scores_df = pd.DataFrame(ai_analyses)
+                if not ai_scores_df.empty:
+                    # Merge with filtered_df based on scholarship_id
+                    filtered_df = filtered_df.merge(
+                        ai_scores_df[['scholarship_id', 'overall_score', 'success_probability', 'application_difficulty']], 
+                        left_on='id', 
+                        right_on='scholarship_id', 
+                        how='left'
+                    )
+                    
+                    # Store analyses for display
+                    st.session_state['current_ai_analyses'] = {a['scholarship_id']: a for a in ai_analyses}
+                    
+                    # Show AI insights summary
+                    high_match_count = len([a for a in ai_analyses if a.get('overall_score', 0) >= 70])
+                    avg_score = sum([a.get('overall_score', 0) for a in ai_analyses]) / len(ai_analyses)
+                    
+                    st.info(f"🤖 AI Analysis Complete: {high_match_count} high-match scholarships found (avg. score: {avg_score:.0f}%)")
+                    
+            except Exception as e:
+                st.error(f"AI analysis failed: {str(e)}")
+                filtered_df['overall_score'] = 0
+    else:
+        filtered_df['overall_score'] = 0
+    
     # Apply sorting
-    if sort_by == "Amount (High to Low)":
+    if sort_by == "AI Match Score":
+        filtered_df = filtered_df.sort_values('overall_score', ascending=False)
+    elif sort_by == "Amount (High to Low)":
         filtered_df = filtered_df.sort_values('amount', ascending=False)
     elif sort_by == "Amount (Low to High)":
         filtered_df = filtered_df.sort_values('amount', ascending=True)
@@ -168,10 +238,24 @@ def main():
     else:
         page_df = filtered_df
     
-    # Display scholarships
+    # Display scholarships with AI enhancements
     for idx, (_, scholarship) in enumerate(page_df.iterrows()):
-        with st.expander(f"🎯 {scholarship['title']} - ${scholarship['amount']:,}", expanded=False):
-            display_scholarship_details(scholarship, ai_enhancer, idx)
+        # Determine display icon based on AI score
+        ai_score = scholarship.get('overall_score', 0)
+        if ai_score >= 80:
+            icon = "🏆"  # High match
+        elif ai_score >= 60:
+            icon = "🎯"  # Good match
+        elif ai_score >= 40:
+            icon = "📋"  # Moderate match
+        else:
+            icon = "📄"  # Basic match
+        
+        # Enhanced title with AI score
+        title_suffix = f" (AI: {ai_score}%)" if ai_score > 0 else ""
+        
+        with st.expander(f"{icon} {scholarship['title']} - ${scholarship['amount']:,}{title_suffix}", expanded=False):
+            display_scholarship_details_enhanced(scholarship, ai_enhancer, ai_matcher, idx)
     
     # Analytics section
     if len(filtered_df) > 5:
@@ -262,52 +346,115 @@ def apply_filters(df, search_term, min_amount, max_amount, categories, demograph
     
     return filtered_df
 
-def display_scholarship_details(scholarship, ai_enhancer, idx):
-    """Display detailed scholarship information"""
+def display_scholarship_details_enhanced(scholarship, ai_enhancer, ai_matcher, idx):
+    """Display enhanced scholarship information with AI analysis"""
     col1, col2 = st.columns([2, 1])
     
     with col1:
+        # Get AI analysis if available
+        scholarship_id = scholarship.get('id')
+        ai_analysis = st.session_state.get('current_ai_analyses', {}).get(scholarship_id, {})
+        
         # AI-enhanced description
-        with st.spinner("Generating AI summary..."):
+        if ai_enhancer.is_available():
             try:
                 summary = ai_enhancer.summarize_scholarship(scholarship.to_dict())
                 st.markdown(f"**AI Summary:** {summary}")
             except Exception as e:
-                st.write(f"**Description:** {scholarship['description']}")
-                st.caption(f"AI summary unavailable: {str(e)}")
+                st.write(f"**Description:** {scholarship['description'][:300]}...")
+        else:
+            st.write(f"**Description:** {scholarship['description'][:300]}...")
         
+        # AI Insights
+        if ai_analysis:
+            with st.expander("🤖 AI Insights", expanded=False):
+                strengths = ai_analysis.get('strengths', [])
+                if strengths:
+                    st.write("**Your Advantages:**")
+                    for strength in strengths[:3]:
+                        st.write(f"✅ {strength}")
+                
+                recommendations = ai_analysis.get('recommendations', [])
+                if recommendations:
+                    st.write("**AI Recommendations:**")
+                    for rec in recommendations[:3]:
+                        st.write(f"💡 {rec}")
+                
+                missing_reqs = ai_analysis.get('missing_requirements', [])
+                if missing_reqs:
+                    st.write("**Areas to Address:**")
+                    for req in missing_reqs[:3]:
+                        st.write(f"⚠️ {req}")
+        
+        # Basic scholarship info
         st.write(f"**Category:** {scholarship['category']}")
         st.write(f"**Target Demographics:** {', '.join(scholarship['target_demographics'])}")
-        st.write(f"**Eligibility Criteria:** {scholarship['eligibility_criteria']}")
-        st.write(f"**Application Requirements:** {scholarship['application_requirements']}")
+        st.write(f"**Eligibility:** {scholarship['eligibility_criteria'][:200]}...")
         
-        if scholarship['website']:
+        if scholarship.get('website'):
+            st.markdown(f"**Website:** [{scholarship['website']}]({scholarship['website']})")
+    
+    with col2:
+        # Metrics with AI enhancements
+        st.metric("Award Amount", f"${scholarship['amount']:,}")
+        st.metric("GPA Requirement", f"{scholarship['gpa_requirement']}")
+        
+        # AI-specific metrics
+        if ai_analysis:
+            ai_score = ai_analysis.get('overall_score', 0)
+            score_color = "green" if ai_score >= 70 else "orange" if ai_score >= 50 else "red"
+            st.metric("AI Match Score", f"{ai_score}%")
+            
+            success_prob = ai_analysis.get('success_probability', 0)
+            st.metric("Success Probability", f"{success_prob}%")
+            
+            difficulty = ai_analysis.get('application_difficulty', 3)
+            difficulty_map = {1: "Very Easy", 2: "Easy", 3: "Medium", 4: "Hard", 5: "Very Hard"}
+            st.metric("Difficulty", difficulty_map.get(difficulty, "Medium"))
+        
+        st.write(f"**Deadline:** {scholarship['deadline']}")
+        if scholarship.get('contact_info'):
+            st.write(f"**Contact:** {scholarship['contact_info'][:50]}...")
+        
+        # Enhanced action buttons
+        col_btn1, col_btn2 = st.columns(2)
+        
+        with col_btn1:
+            if st.button(f"Analyze", key=f"analyze_{idx}"):
+                # Switch to AI assistant page
+                st.info("Redirecting to AI Application Assistant...")
+                st.switch_page("pages/8_AI_Application_Assistant.py")
+        
+        with col_btn2:
+            if st.button(f"Track", key=f"track_{idx}"):
+                # Add to application tracker
+                dm = st.session_state.data_manager
+                result = dm.add_application(scholarship['id'], scholarship['title'])
+                if result:
+                    st.success("Added to tracker!")
+                else:
+                    st.error("Failed to add")
+
+def display_scholarship_details(scholarship, ai_enhancer, idx):
+    """Display basic scholarship information (fallback)"""
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        st.write(f"**Description:** {scholarship['description'][:300]}...")
+        st.write(f"**Category:** {scholarship['category']}")
+        st.write(f"**Target Demographics:** {', '.join(scholarship['target_demographics'])}")
+        st.write(f"**Eligibility:** {scholarship['eligibility_criteria'][:200]}...")
+        
+        if scholarship.get('website'):
             st.markdown(f"**Website:** [{scholarship['website']}]({scholarship['website']})")
     
     with col2:
         st.metric("Award Amount", f"${scholarship['amount']:,}")
         st.metric("GPA Requirement", f"{scholarship['gpa_requirement']}")
         st.write(f"**Deadline:** {scholarship['deadline']}")
-        st.write(f"**Contact:** {scholarship['contact_info']}")
-        
-        # Action buttons
-        if st.button(f"Save to Favorites", key=f"save_{idx}"):
-            st.success("Added to favorites!")
         
         if st.button(f"Apply Now", key=f"apply_{idx}"):
-            if scholarship['website']:
-                st.success(f"Opening application: {scholarship['website']}")
-            else:
-                st.info("Contact information provided above for application.")
-        
-        # Match score if user profile exists
-        if st.session_state.user_profile['demographics'] or st.session_state.user_profile['field_of_study']:
-            from pages import Dashboard
-            try:
-                match_score = Dashboard.calculate_match_score(scholarship, st.session_state.user_profile)
-                st.metric("Match Score", f"{match_score}%")
-            except:
-                pass
+            st.success("Application process initiated!")
 
 if __name__ == "__main__":
     main()

@@ -107,100 +107,130 @@ def main():
         top_recommendations = filtered_scholarships.head(3)
         display_basic_recommendations(top_recommendations, user_profile)
     
-    # Analytics section
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        st.header("📈 Your Opportunity Landscape")
+    # Analytics section - only show if we have data
+    if not scholarships_df.empty:
+        # Get basic filtered scholarships for analytics
+        filtered_scholarships = filter_scholarships_for_user(scholarships_df, user_profile)
         
-        # Amount distribution of matching scholarships
-        fig_amounts = px.histogram(
-            filtered_scholarships, 
-            x='amount',
-            bins=20,
-            title="Distribution of Scholarship Amounts (Your Matches)",
-            labels={'amount': 'Award Amount ($)', 'count': 'Number of Scholarships'}
-        )
-        fig_amounts.update_layout(showlegend=False)
-        st.plotly_chart(fig_amounts, use_container_width=True)
+        if not filtered_scholarships.empty:
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.header("📈 Your Opportunity Landscape")
+                
+                # Amount distribution of matching scholarships
+                fig_amounts = px.histogram(
+                    filtered_scholarships, 
+                    x='amount',
+                    nbins=20,
+                    title="Distribution of Scholarship Amounts (Your Matches)",
+                    labels={'amount': 'Award Amount ($)', 'count': 'Number of Scholarships'}
+                )
+                fig_amounts.update_layout(showlegend=False)
+                st.plotly_chart(fig_amounts, use_container_width=True)
+                
+                # Category breakdown
+                if 'category' in filtered_scholarships.columns:
+                    category_counts = filtered_scholarships['category'].value_counts()
+                    if not category_counts.empty:
+                        fig_categories = px.pie(
+                            values=category_counts.values,
+                            names=category_counts.index,
+                            title="Scholarship Categories (Your Matches)"
+                        )
+                        st.plotly_chart(fig_categories, use_container_width=True)
+            
+            with col2:
+                st.header("🎯 Match Quality Analysis")
+                
+                # Calculate match scores for all filtered scholarships
+                match_scores = []
+                for _, scholarship in filtered_scholarships.iterrows():
+                    score = calculate_match_score(scholarship, user_profile)
+                    match_scores.append(score)
+                
+                if match_scores:
+                    filtered_scholarships_with_scores = filtered_scholarships.copy()
+                    filtered_scholarships_with_scores['match_score'] = match_scores
+                    
+                    # Match score distribution
+                    fig_scores = px.histogram(
+                        filtered_scholarships_with_scores,
+                        x='match_score',
+                        nbins=15,
+                        title="Distribution of Match Scores",
+                        labels={'match_score': 'Match Score (%)', 'count': 'Number of Scholarships'}
+                    )
+                    st.plotly_chart(fig_scores, use_container_width=True)
+                    
+                    # Top categories by average match score
+                    if 'category' in filtered_scholarships_with_scores.columns:
+                        category_scores = filtered_scholarships_with_scores.groupby('category')['match_score'].mean().sort_values(ascending=False)
+                        if not category_scores.empty:
+                            fig_category_scores = px.bar(
+                                x=category_scores.values,
+                                y=category_scores.index,
+                                orientation='h',
+                                title="Average Match Score by Category",
+                                labels={'x': 'Average Match Score (%)', 'y': 'Category'}
+                            )
+                            st.plotly_chart(fig_category_scores, use_container_width=True)
+        else:
+            st.info("Complete your profile to see analytics and recommendations.")
+    
+        # Deadline tracking
+        st.header("⏰ Upcoming Deadlines")
         
-        # Category breakdown
-        category_counts = filtered_scholarships['category'].value_counts()
-        fig_categories = px.pie(
-            values=category_counts.values,
-            names=category_counts.index,
-            title="Scholarship Categories (Your Matches)"
-        )
-        st.plotly_chart(fig_categories, use_container_width=True)
+        if not filtered_scholarships.empty and 'deadline' in filtered_scholarships.columns:
+            try:
+                # Convert deadline to datetime and sort
+                filtered_scholarships_copy = filtered_scholarships.copy()
+                filtered_scholarships_copy['deadline_date'] = pd.to_datetime(filtered_scholarships_copy['deadline'], errors='coerce')
+                valid_deadlines = filtered_scholarships_copy.dropna(subset=['deadline_date'])
+                
+                if not valid_deadlines.empty:
+                    upcoming_deadlines = valid_deadlines.sort_values('deadline_date').head(10)
+                    
+                    deadline_data = []
+                    for _, scholarship in upcoming_deadlines.iterrows():
+                        days_until = (scholarship['deadline_date'] - pd.Timestamp.now()).days
+                        deadline_data.append({
+                            'Scholarship': scholarship['title'],
+                            'Deadline': scholarship['deadline'],
+                            'Days Until': max(0, days_until),
+                            'Amount': f"${scholarship['amount']:,}",
+                            'Category': scholarship['category']
+                        })
+                    
+                    if deadline_data:
+                        deadline_df = pd.DataFrame(deadline_data)
+                        st.dataframe(deadline_df, use_container_width=True)
+                        
+                        # Action items
+                        st.header("✅ Recommended Actions")
+                        
+                        urgent_deadlines = deadline_df[deadline_df['Days Until'] <= 30]
+                        if not urgent_deadlines.empty:
+                            st.warning(f"⚠️ {len(urgent_deadlines)} scholarships have deadlines within 30 days!")
+                            for _, deadline in urgent_deadlines.iterrows():
+                                st.write(f"• **{deadline['Scholarship']}** - {deadline['Days Until']} days remaining")
+                    else:
+                        st.info("No upcoming deadlines found.")
+                else:
+                    st.info("No valid deadline information available.")
+            except Exception as e:
+                st.warning(f"Could not process deadline information: {str(e)}")
+        else:
+            st.info("No deadline information available.")
     
-    with col2:
-        st.header("🎯 Match Quality Analysis")
-        
-        # Calculate match scores for all filtered scholarships
-        match_scores = []
-        for _, scholarship in filtered_scholarships.iterrows():
-            score = calculate_match_score(scholarship, user_profile)
-            match_scores.append(score)
-        
-        filtered_scholarships_with_scores = filtered_scholarships.copy()
-        filtered_scholarships_with_scores['match_score'] = match_scores
-        
-        # Match score distribution
-        fig_scores = px.histogram(
-            filtered_scholarships_with_scores,
-            x='match_score',
-            bins=15,
-            title="Distribution of Match Scores",
-            labels={'match_score': 'Match Score (%)', 'count': 'Number of Scholarships'}
-        )
-        st.plotly_chart(fig_scores, use_container_width=True)
-        
-        # Top categories by average match score
-        category_scores = filtered_scholarships_with_scores.groupby('category')['match_score'].mean().sort_values(ascending=False)
-        fig_category_scores = px.bar(
-            x=category_scores.values,
-            y=category_scores.index,
-            orientation='h',
-            title="Average Match Score by Category",
-            labels={'x': 'Average Match Score (%)', 'y': 'Category'}
-        )
-        st.plotly_chart(fig_category_scores, use_container_width=True)
-    
-    # Deadline tracking
-    st.header("⏰ Upcoming Deadlines")
-    
-    # Convert deadline to datetime and sort
-    filtered_scholarships['deadline_date'] = pd.to_datetime(filtered_scholarships['deadline'])
-    upcoming_deadlines = filtered_scholarships.sort_values('deadline_date').head(10)
-    
-    deadline_data = []
-    for _, scholarship in upcoming_deadlines.iterrows():
-        days_until = (scholarship['deadline_date'] - pd.Timestamp.now()).days
-        deadline_data.append({
-            'Scholarship': scholarship['title'],
-            'Deadline': scholarship['deadline'],
-            'Days Until': max(0, days_until),
-            'Amount': f"${scholarship['amount']:,}",
-            'Category': scholarship['category']
-        })
-    
-    deadline_df = pd.DataFrame(deadline_data)
-    st.dataframe(deadline_df, use_container_width=True)
-    
-    # Action items
-    st.header("✅ Recommended Actions")
-    
-    urgent_deadlines = deadline_df[deadline_df['Days Until'] <= 30]
-    if not urgent_deadlines.empty:
-        st.warning(f"⚠️ {len(urgent_deadlines)} scholarships have deadlines within 30 days!")
-        for _, deadline in urgent_deadlines.iterrows():
-            st.write(f"• **{deadline['Scholarship']}** - {deadline['Days Until']} days remaining")
-    
-    st.info("💡 **Tips for Success:**")
-    st.write("• Start applications early - most scholarships require essays and recommendations")
-    st.write("• Keep your profile updated to discover new opportunities")
-    st.write("• Set up deadline reminders for scholarships you're interested in")
-    st.write("• Consider scholarships with lower match scores - they might have less competition")
+        # Tips section
+        st.info("💡 **Tips for Success:**")
+        st.write("• Start applications early - most scholarships require essays and recommendations")
+        st.write("• Keep your profile updated to discover new opportunities")
+        st.write("• Set up deadline reminders for scholarships you're interested in")
+        st.write("• Consider scholarships with lower match scores - they might have less competition")
+    else:
+        st.info("No scholarship data available. Please check back later or contact support.")
 
 def display_ai_recommendation(scholarship, analysis, index):
     """Display AI-enhanced scholarship recommendation"""

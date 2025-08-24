@@ -225,7 +225,8 @@ def main():
                             temperature=0.3
                         )
                         
-                        feedback = response.choices[0].message.content.strip()
+                        content = response.choices[0].message.content
+                        feedback = content.strip() if content else "Unable to provide feedback at this time."
                         
                         st.subheader("AI Essay Feedback")
                         st.write(feedback)

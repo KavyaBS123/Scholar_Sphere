@@ -80,11 +80,12 @@ class AdvancedAIMatchingEngine:
                 temperature=0.2
             )
             
-            result = json.loads(response.choices[0].message.content)
+            content = response.choices[0].message.content
+            result = json.loads(content) if content else {}
             
             # Add calculated fields
             result['scholarship_id'] = scholarship.get('id')
-            result['scholarship_title'] = scholarship.get('title')
+            result['scholarship_title'] = scholarship.get('title', '')
             result['award_amount'] = scholarship.get('amount', 0)
             
             return result
@@ -201,7 +202,8 @@ class AdvancedAIMatchingEngine:
                 temperature=0.3
             )
             
-            strategy = json.loads(response.choices[0].message.content)
+            content = response.choices[0].message.content
+            strategy = json.loads(content) if content else {}
             return strategy
             
         except Exception as e:
@@ -309,7 +311,8 @@ class AdvancedAIMatchingEngine:
                 temperature=0.4
             )
             
-            insights = json.loads(response.choices[0].message.content)
+            content = response.choices[0].message.content
+            insights = json.loads(content) if content else {}
             return insights
             
         except Exception as e:

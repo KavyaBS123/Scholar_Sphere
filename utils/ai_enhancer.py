@@ -50,7 +50,8 @@ class AIEnhancer:
                 temperature=0.7
             )
             
-            return response.choices[0].message.content.strip()
+            content = response.choices[0].message.content
+            return content.strip() if content else ""
             
         except Exception as e:
             raise Exception(f"Failed to generate AI summary: {str(e)}")
@@ -100,7 +101,8 @@ class AIEnhancer:
                 temperature=0.3
             )
             
-            result = json.loads(response.choices[0].message.content)
+            content = response.choices[0].message.content
+            result = json.loads(content) if content else {}
             return result
             
         except Exception as e:
@@ -141,7 +143,8 @@ class AIEnhancer:
                 temperature=0.7
             )
             
-            tips_text = response.choices[0].message.content.strip()
+            content = response.choices[0].message.content
+            tips_text = content.strip() if content else ""
             # Split into individual tips (assuming they're separated by newlines or bullet points)
             tips = [tip.strip('• -').strip() for tip in tips_text.split('\n') if tip.strip()]
             return tips[:5]  # Return max 5 tips
@@ -188,7 +191,8 @@ class AIEnhancer:
                 temperature=0.1
             )
             
-            standardized_data = json.loads(response.choices[0].message.content)
+            content = response.choices[0].message.content
+            standardized_data = json.loads(content) if content else {}
             return standardized_data
             
         except Exception as e:
@@ -224,7 +228,8 @@ class AIEnhancer:
                 temperature=0.7
             )
             
-            suggestions_text = response.choices[0].message.content.strip()
+            content = response.choices[0].message.content
+            suggestions_text = content.strip() if content else ""
             suggestions = [term.strip('• -').strip() for term in suggestions_text.split('\n') if term.strip()]
             return suggestions[:7]  # Return max 7 suggestions
             
@@ -279,7 +284,8 @@ class AIEnhancer:
             temperature=0.7
         )
         
-        response_text = response.choices[0].message.content.strip()
+        content = response.choices[0].message.content
+        response_text = content.strip() if content else ""
         summaries = {}
         
         # Parse the response
@@ -290,10 +296,13 @@ class AIEnhancer:
                     # Extract number and summary
                     parts = line.split(':', 1)
                     if len(parts) == 2:
-                        num_part = parts[0].replace('Scholarship ', '').strip()
-                        summary = parts[1].strip()
-                        index = int(num_part) - 1 + start_index
-                        summaries[index] = summary
+                        try:
+                            num_part = parts[0].replace('Scholarship ', '').strip()
+                            summary = parts[1].strip()
+                            index = int(num_part) - 1 + start_index
+                            summaries[index] = summary
+                        except (ValueError, IndexError):
+                            continue
                 except:
                     continue
         

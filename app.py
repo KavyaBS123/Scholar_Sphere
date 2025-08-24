@@ -105,15 +105,15 @@ def main():
             st.metric("Total Scholarships", len(scholarships_df))
         
         with col2:
-            if 'amount' in scholarships_df.columns:
-                avg_amount = scholarships_df['amount'].mean()
+            if 'amount' in scholarships_df.columns and not scholarships_df.empty:
+                avg_amount = float(scholarships_df['amount'].mean())
                 st.metric("Average Award", f"${avg_amount:,.0f}")
             else:
                 st.metric("Average Award", "N/A")
         
         with col3:
-            if 'category' in scholarships_df.columns:
-                unique_categories = scholarships_df['category'].nunique()
+            if 'category' in scholarships_df.columns and not scholarships_df.empty:
+                unique_categories = int(scholarships_df['category'].nunique())
                 st.metric("Categories", unique_categories)
             else:
                 st.metric("Categories", "N/A")
@@ -142,7 +142,7 @@ def main():
     else:
         featured_scholarships = scholarships_df.head(5)
         
-        for _, scholarship in featured_scholarships.iterrows():
+        for idx, (_, scholarship) in enumerate(featured_scholarships.iterrows()):
             # Safe column access with defaults
             title = scholarship.get('title', 'Unknown Title')
             amount = scholarship.get('amount', 0)
@@ -162,12 +162,15 @@ def main():
                     else:
                         st.write(f"**Demographics:** {demographics}")
                     st.write(f"**Deadline:** {deadline}")
-                    st.write(description[:150] + "...")
+                    if len(str(description)) > 150:
+                        st.write(str(description)[:150] + "...")
+                    else:
+                        st.write(str(description))
                 
                 with col2:
                     st.metric("Amount", f"${amount:,}")
                     st.metric("GPA", f"{gpa_req}")
-                    if st.button("Details", key=f"detail_{scholarship.name}"):
+                    if st.button("Details", key=f"detail_{idx}"):
                         st.switch_page("pages/2_Search_Scholarships.py")
 
 if __name__ == "__main__":

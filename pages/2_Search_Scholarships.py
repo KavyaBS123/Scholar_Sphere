@@ -268,7 +268,7 @@ def main():
             fig_amounts = px.histogram(
                 filtered_df,
                 x='amount',
-                bins=min(20, len(filtered_df)//2),
+                nbins=min(20, max(5, len(filtered_df)//2)),
                 title="Award Amount Distribution",
                 labels={'amount': 'Award Amount ($)', 'count': 'Number of Scholarships'}
             )
@@ -333,6 +333,7 @@ def apply_filters(df, search_term, min_amount, max_amount, categories, demograph
         filtered_df['deadline_date'] = pd.to_datetime(filtered_df['deadline'])
         now = pd.Timestamp.now()
         
+        cutoff = None
         if deadline_filter == "Next 30 days":
             cutoff = now + pd.Timedelta(days=30)
         elif deadline_filter == "Next 90 days":
@@ -342,7 +343,8 @@ def apply_filters(df, search_term, min_amount, max_amount, categories, demograph
         elif deadline_filter == "Next year":
             cutoff = now + pd.Timedelta(days=365)
         
-        filtered_df = filtered_df[filtered_df['deadline_date'] <= cutoff]
+        if cutoff is not None:
+            filtered_df = filtered_df[filtered_df['deadline_date'] <= cutoff]
     
     return filtered_df
 

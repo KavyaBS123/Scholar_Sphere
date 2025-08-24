@@ -76,21 +76,21 @@ class DatabaseManager:
             for scholarship in scholarships:
                 data.append({
                     'id': scholarship.id,
-                    'title': scholarship.title,
-                    'amount': scholarship.amount,
-                    'category': scholarship.category,
-                    'target_demographics': scholarship.target_demographics,
-                    'description': scholarship.description,
-                    'eligibility_criteria': scholarship.eligibility_criteria,
-                    'application_requirements': scholarship.application_requirements,
-                    'deadline': scholarship.deadline,
-                    'gpa_requirement': scholarship.gpa_requirement,
-                    'website': scholarship.website,
-                    'contact_info': scholarship.contact_info,
-                    'source': scholarship.source,
-                    'verification_status': scholarship.verification_status,
-                    'application_difficulty': scholarship.application_difficulty,
-                    'estimated_applicants': scholarship.estimated_applicants,
+                    'title': scholarship.title or '',
+                    'amount': scholarship.amount or 0,
+                    'category': scholarship.category or '',
+                    'target_demographics': scholarship.target_demographics or [],
+                    'description': scholarship.description or '',
+                    'eligibility_criteria': scholarship.eligibility_criteria or '',
+                    'application_requirements': scholarship.application_requirements or '',
+                    'deadline': scholarship.deadline or '',
+                    'gpa_requirement': scholarship.gpa_requirement or 0.0,
+                    'website': scholarship.website or '',
+                    'contact_info': scholarship.contact_info or '',
+                    'source': scholarship.source or '',
+                    'verification_status': scholarship.verification_status or 'verified',
+                    'application_difficulty': scholarship.application_difficulty or 'Medium',
+                    'estimated_applicants': scholarship.estimated_applicants or 0,
                     'last_updated': scholarship.last_updated
                 })
             
@@ -138,18 +138,18 @@ class DatabaseManager:
             for scholarship in scholarships:
                 data.append({
                     'id': scholarship.id,
-                    'title': scholarship.title,
-                    'amount': scholarship.amount,
-                    'category': scholarship.category,
-                    'target_demographics': scholarship.target_demographics,
-                    'description': scholarship.description,
-                    'eligibility_criteria': scholarship.eligibility_criteria,
-                    'application_requirements': scholarship.application_requirements,
-                    'deadline': scholarship.deadline,
-                    'gpa_requirement': scholarship.gpa_requirement,
-                    'website': scholarship.website,
-                    'contact_info': scholarship.contact_info,
-                    'source': scholarship.source
+                    'title': scholarship.title or '',
+                    'amount': scholarship.amount or 0,
+                    'category': scholarship.category or '',
+                    'target_demographics': scholarship.target_demographics or [],
+                    'description': scholarship.description or '',
+                    'eligibility_criteria': scholarship.eligibility_criteria or '',
+                    'application_requirements': scholarship.application_requirements or '',
+                    'deadline': scholarship.deadline or '',
+                    'gpa_requirement': scholarship.gpa_requirement or 0.0,
+                    'website': scholarship.website or '',
+                    'contact_info': scholarship.contact_info or '',
+                    'source': scholarship.source or ''
                 })
             
             return pd.DataFrame(data)
@@ -165,18 +165,18 @@ class DatabaseManager:
             if scholarship:
                 return {
                     'id': scholarship.id,
-                    'title': scholarship.title,
-                    'amount': scholarship.amount,
-                    'category': scholarship.category,
-                    'target_demographics': scholarship.target_demographics,
-                    'description': scholarship.description,
-                    'eligibility_criteria': scholarship.eligibility_criteria,
-                    'application_requirements': scholarship.application_requirements,
-                    'deadline': scholarship.deadline,
-                    'gpa_requirement': scholarship.gpa_requirement,
-                    'website': scholarship.website,
-                    'contact_info': scholarship.contact_info,
-                    'source': scholarship.source
+                    'title': scholarship.title or '',
+                    'amount': scholarship.amount or 0,
+                    'category': scholarship.category or '',
+                    'target_demographics': scholarship.target_demographics or [],
+                    'description': scholarship.description or '',
+                    'eligibility_criteria': scholarship.eligibility_criteria or '',
+                    'application_requirements': scholarship.application_requirements or '',
+                    'deadline': scholarship.deadline or '',
+                    'gpa_requirement': scholarship.gpa_requirement or 0.0,
+                    'website': scholarship.website or '',
+                    'contact_info': scholarship.contact_info or '',
+                    'source': scholarship.source or ''
                 }
             return None
             
